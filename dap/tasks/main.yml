@@ -1,0 +1,110 @@
+---
+
+- hosts: all
+  user: deploy
+  vars:
+    proxy_env:
+      http_proxy: http://proxy.pipl.pro:3128
+      https_proxy: http://proxy.pipl.pro:3128
+    path_var:
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Install Python + all python friends.
+# Install AirFlow with mysql+celery+slack
+# Putting DAP user ssh key & GIT key
+# SUDO for yakik, Sharon
+
+  gather_facts: no
+  tasks:
+#  - include_vars: ../variables/services.yml
+
+    - name: Ensure basic tools are installed
+      apt: name={{ item }} state=installed
+      environment: "{{path_var}}"
+      with_items:
+        - python
+        - python-pip
+        - git
+        - socat
+        - nfs-common
+        - libmariadbclient-dev
+        - zip
+        - gzip
+        - virtualenv
+        - icu-devtools
+
+
+    - name: Install AirFlow
+      shell: export http_proxy=http://proxy.pipl.pro:3128; export https_proxy=$http_proxy; pip install apache-airflow[mysql,celery,slack]==1.9.0
+      tags: airflow
+  #    ignore_errors: yes
+
+    - copy:
+        src: ../../../roles/dap/files/etc/init.d/airflow_agent
+        dest: /etc/init.d/airflow_agent
+        owner: dap
+        group: users
+        mode: 0775
+
+#    - pip:
+#        #name: apache-airflow[mysql, celery, slack]
+#        name: apache-airflow
+#        #version: 1.9.0
+#        #tags: airflow
+#        #        tags: config
+#        tags: config
+
+#Create user -dap-
+#- include: ../../../roles/create-services/variables/services.yml
+
+#    - name: Include vars 
+#      include_vars:
+#        file: ../../../roles/create-services/keys/dap.pub
+#        name: dap_pub
+    
+    
+    - lineinfile:
+        path: ~dap/.ssh/authorized_keys
+        line: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC24k5/1W1XmoMNYRP95I38wIKjkLuAKPswIo2LI2gRwDGx016ziNDTsRi4aii7ak0dsaFn3hRcMyz2ZG987uzaXE+qPFaH4oSROLHLUZE9cjzyeHUHTRJRXWIZoWRRejeXJ+fmaIAgCR8qp9Il09K3yUlZUOCF7ohe5WRGsWsh8VZ7fdxreHRKUzGJGkYqrPzto3QVSjI0mH9LCx04gHBdj4GReqL3OIYsX/aVnd5Uj/2f/+8L7TakNXzW2BG8M797niV7OF0RjEO88BVSvbiDIfCdFU7OdG/+7wqjFwvqcvIML9wEriAFGKGNYRzhokJGmq9+et6l01qSr1L0yCXjT2ZKNDeymnZwASviUdkE3WAZH32ewvPgpau3vfAPU5qzPCSq7+NnIC5Uesf1kjnXyD+b7SO/pD+v3hfC/U5O/h4d/3asLu+34Vwk6bNK51mWFig5OrISreUVLdCXL+RvymeyFNG1H2JyGCaF14mGgyYj8qNXYnAc6E7JVww/3vSNf53Us7DJ+9u/YCcfACMa52Bk24UyrYkdp+sBnLvV4NLAyqJXOP1MCN9FABtJWWrG7jKCow+pfICitKxSH27JOMTZbHyt2dLyJ6La0lX+ebGkzgTiMSvA8mngjEL1VtU1bqCavlnH16rVlqlLFLYXSQy//ZhR6EI6wM4fOqQx0w== nab@pipl.com'
+        state: present
+    
+    - lineinfile:
+        path: ~dap/.ssh/authorized_keys
+        line: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDMa8bJUHbkNB5wMCtsYFv8lZQfTuDrgn/RtwLtNTYOtG38mxJHKAS4yMLT994nIneYEkDHuyJDcM0IXTyX+wxgykt1EZhUhLPEffZvsMETaREsMF0wcpKvXDknC3Anc8u2fodPUiQgWupERsNT97xSw0xaMavnyNQvEPom3WWE2jFAzlEDpRle8RbdrW2p6wGbi9jNrq7rnx4JsNWUxV4kYB4HGi4NhNxN+qsQ9liv4rxrauf4lhFLtcMWnpsxNLIPjgDOghgtulmiYIRiHdZre1uFXGIRTmCyyXzb45alYsaN05kqalQiPoY8CFITZHXG6AYYIaCN1PgTJmvvqLUX dap@dap-mstream01.pipl.com'
+        state: present
+
+
+#Configure GIT SSH key 
+    - name: Touch ~dap/.ssh/config
+      shell: touch  ~dap/.ssh/config
+      ignore_errors: yes
+  
+
+    - lineinfile:
+        path: ~dap/.ssh/config
+        line: "Host=github.com\nProxyCommand=socat - PROXY:proxy.pipl.com:%h:%p,proxyport=3128\nIdentityFile=~/.ssh/git_ssh"
+#        state: present
+
+
+    - copy:
+        src: ../../../secure/files/git_ssh
+        dest: ~dap/.ssh/git_ssh
+        owner: dap
+        group: users
+        mode: 0400
+
+    - copy:
+        src: ../../../secure/files/dap_spark_priv_key
+        dest: ~dap/.ssh/id_rsa
+        owner: dap
+        group: users
+        mode: 0400
+  
+    - user:
+        name: sharonp
+        groups: sudo
+        append: yes
+
+    - user:
+        name: yakik
+        groups: sudo
+        append: yes

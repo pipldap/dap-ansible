@@ -1,0 +1,37 @@
+---
+
+- hosts: all
+  user: deploy
+  vars:
+    proxy_env:
+      http_proxy: http://proxy.pipl.pro:3128
+      https_proxy: http://proxy.pipl.pro:3128
+    path_var:
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+  gather_facts: no
+  tasks:
+#  - include_vars: ../variables/services.yml
+
+    - file:
+        path: /opt/airflow/airflow_bin/
+        owner: dap
+        group: users
+        state: directory
+        mode: 0755
+
+
+    - copy:
+        src: ../../../roles/dap/files/airflow_agent_create.sh
+        dest: /tmp/airflow_agent_create.sh
+        owner: dap
+        group: users
+        mode: 0700
+#        tags: venv_install
+  
+  
+    - name: Create AirFlow agent
+      shell: sudo su dap -c "bash -vx /tmp/airflow_agent_create.sh > /tmp/airflow_agent_create.log 2>&1"
+#      tags: venv_install
+  #    ignore_errors: yes
+  

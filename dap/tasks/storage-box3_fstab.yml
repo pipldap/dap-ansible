@@ -1,0 +1,27 @@
+---
+
+- hosts: all
+  user: deploy
+  vars:
+    proxy_env:
+      http_proxy: http://proxy.pipl.pro:3128
+      https_proxy: http://proxy.pipl.pro:3128
+    path_var:
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+  gather_facts: no
+  tasks:
+    - name: create mounted folder
+      file:
+        state: directory
+        path: /mnt/storage-box3
+
+    - name: mount data from storage-box3
+      mount:
+        path: /mnt/storage-box3
+        src: storage-box3.pipl.com:/data
+        fstype: nfs
+        state: mounted
+        opts: noauto
+
+...

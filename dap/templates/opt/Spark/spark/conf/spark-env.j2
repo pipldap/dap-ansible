@@ -1,0 +1,19 @@
+# this file was generated with Ansible
+
+
+
+SPARK_MASTER_HOST=dap-mstream01.pipl.com
+SPARK_MASTER_PORT=7077
+SPARK_MASTER_WEBUI_PORT=8088
+SPARK_WORKER_CORES={{ (processor_count.stdout |int|abs - 1) }}
+#SPARK_WORKER_MEMORY={{ ansible_memory_mb.real.total | int / 1000 -4 | abs }}G
+SPARK_WORKER_MEMORY={{ ansible_memory_mb.real.total | int -1500 | abs }}m
+SPARK_WORKER_OPTS="-Dspark.worker.cleanup.enabled=true -Dspark.worker.cleanup.interval=86400"
+SPARK_HISTORY_OPTS="-Dspark.history.fs.logDirectory=/mnt/storage-box3/data/spark_data/spark-events/dap-mstream"
+
+SPARK_WORKER_DIR="/data1/spark_data/work"
+SPARK_LOCAL_DIRS="/data1/spark_data/tmp"
+SPARK_LOG_DIR="/data1/spark_data/logs"
+SPARK_PID_DIR="/data1/spark_data/tmp"
+
+

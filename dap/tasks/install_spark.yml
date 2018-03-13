@@ -1,0 +1,77 @@
+---
+
+- hosts: all
+  user: deploy
+  vars:
+    proxy_env:
+      http_proxy: http://proxy.pipl.pro:3128
+      https_proxy: http://proxy.pipl.pro:3128
+    path_var:
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+  gather_facts: yes
+  tasks:
+#  - include_vars: ../variables/services.yml
+
+    - name: Create /opt/Spark
+      shell: mkdir /opt/Spark
+      tags: spark-download
+      ignore_errors: yes
+
+
+    - name: Download Spark from Artifactory
+      shell: cd /opt/Spark ;  wget https://artifactory.pipl.pro/artifactory/external_libs1/spark/spark-2.2.0_hadoop-2.7.zip ; unzip spark-2.2.0_hadoop-2.7.zip
+      tags: spark-download
+   #   ignore_errors: yes
+
+    - name: Extruct Spark from Artifactory
+      shell: cd /opt/Spark ; mv spark-2.2.0_hadoop-2.7/spark-2.2.0-bin-hadoop2.7/* spark-2.2.0_hadoop-2.7/ ; rm -rf spark-2.2.0_hadoop-2.7/spark-2.2.0-bin-hadoop2.7 ; ln -s spark-2.2.0_hadoop-2.7 spark
+      tags: spark-download
+   #   ignore_errors: yes
+
+
+#Create user -dap-
+#- include: ../../../roles/create-services/variables/services.yml
+
+#    - name: Include vars 
+#      include_vars:
+#        file: ../../../roles/create-services/keys/dap.pub
+#        name: dap_pub
+    
+    
+
+    - copy:
+        src: ../files/opt/Spark/spark/conf/spark-env.sh
+        dest: /opt/Spark/spark/conf/spark-env.sh
+        owner: dap
+        group: users
+        mode: 0755
+      tags: param1
+
+    - shell: cat /proc/cpuinfo | grep processor | wc -l
+      register: processor_count 
+      tags: param
+
+    - debug:
+        msg: "Test {{ processor_count }}"
+      tags: param
+
+    - copy:
+        src: ../templates/opt/Spark/spark/conf/spark-env.j2
+        dest: /opt/Spark/spark/conf/spark-env.sh
+        owner: dap
+        group: users
+        mode: 0755
+      tags: param1
+
+    - name: Copy spark-env.sh
+      template:
+        src: ../templates/opt/Spark/spark/conf/spark-env.j2
+        dest: /opt/Spark/spark/conf/spark-env.sh
+        owner: dap
+        group: users
+        mode: 0755
+      tags: param
+  
+  
+
